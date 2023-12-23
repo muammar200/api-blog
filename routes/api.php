@@ -5,6 +5,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Middleware\Authenticate;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\UserController;
 use App\Http\Controllers\RegisterController;
 
 /*
@@ -25,4 +26,9 @@ Route::middleware(['guest'])->group(function(){
 
 Route::middleware(['auth:sanctum'])->group(function(){
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+    
+    // User
+    Route::get('/user/{username}', [UserController::class, 'show']);
+    Route::put('/user/{id}', [UserController::class, 'update'])->middleware(['user-owner']);
+    Route::delete('/user/{id}', [UserController::class, 'destroy'])->middleware(['user-owner']);
 });
