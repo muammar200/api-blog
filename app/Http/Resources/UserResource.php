@@ -27,11 +27,11 @@ class UserResource extends JsonResource
             'message' => $this->message,
             'data' => [
                 'id' => $this->id,
-                'firstname' => $this->firstname,
-                'lastname' => $this->lastname,
+                'username' => $this->username,
                 'email' => $this->email,
                 'email_verified_at' => $this->email_verified_at,
                 'created_at' => Carbon::parse($this->created_at)->format('Y/m/d H:i:s'),
+                'detail_user' => $this->whenLoaded('detailUser')
             ],
         ];
     }
