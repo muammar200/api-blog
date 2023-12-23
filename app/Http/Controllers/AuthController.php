@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use App\Http\Resources\UserResource;
+use App\Models\DetailUser;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
@@ -15,13 +16,29 @@ class AuthController extends Controller
         $validated = $request->validate([
             'firstname' => 'required|max:100',
             'lastname' => 'max:100',
+            'username' => 'required|unique:users|max:20',
             'email' => 'required|email:rfc,dns|unique:users',
             'password' => 'required|min:8|max:255'
         ]);
 
-        $user = User::create($request->all());
+        // return response()->json($request->username);
 
-        return new UserResource($user, true, 'User registered successfully!');
+        // store to table users
+        $user = User::create([
+            'username' => $request->username,
+            'email' => $request->email,
+            'password' => $request->password
+        ]);
+
+        // store to table detail_users
+        $detailUser = DetailUser::create([
+            'user_id' => $user->id,
+            'firstname' => $request->firstname,
+            'lastname' => $request->lastname
+        ]);
+
+        return new UserResource($user->loadMissing('detailUser'), true, 'User registered successfully!');
+        // return new UserResource($user->loadMissing(['detailUser']), true, 'User registered successfully!');
     }
 
     public function login(Request $request)
