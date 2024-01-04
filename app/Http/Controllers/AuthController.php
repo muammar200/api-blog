@@ -21,7 +21,6 @@ class AuthController extends Controller
             'password' => 'required|min:8|max:255'
         ]);
 
-        // return response()->json($request->username);
 
         // store to table users
         $user = User::create([
@@ -37,8 +36,7 @@ class AuthController extends Controller
             'lastname' => $request->lastname
         ]);
 
-        return new UserResource($user->loadMissing('detailUser'), true, 'User registered successfully!');
-        // return new UserResource($user->loadMissing(['detailUser']), true, 'User registered successfully!');
+        return new UserResource($user->loadMissing(['detailUser']), true, 'User registered successfully!');
     }
 
     public function login(Request $request)
@@ -50,12 +48,14 @@ class AuthController extends Controller
 
         $user = User::where('email', $request->email)->first();
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
+        // check email and password
+        if (!$user ||  !Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
                 'email' => ['The provided credentials are incorrect.'],
             ]);
         }
 
+        // check email verified or not verified
         // if (! $user->email_verified_at) {
         //     throw ValidationException::withMessages([
         //         'email' => ['Email is not verified.'],
