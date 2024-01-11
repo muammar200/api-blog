@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\DetailUser;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use App\Http\Resources\UserResource;
@@ -11,51 +12,25 @@ use Illuminate\Support\Facades\Storage;
 
 class UserController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
         //
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show($username)
+    public function show(User $user)
     {
-        $currentUser = Auth::user();
-        $user = User::where('username', $username)->first();
-
-        if (!$user) {
-            return response()->json(['message' => 'User not found'], 404);
-        }
-
-        // Periksa apakah pengguna yang sedang login memiliki username yang sama dengan username yang diminta
-        if ($currentUser && $currentUser->username === $user->username) {
-            return new UserResource($user->loadMissing('detailUser'), true, 'Show User Data Successfully');
-        }
-
-        // Jika pengguna yang sedang login tidak memiliki hak akses untuk melihat profil
-        return response()->json(['message' => 'Unauthorized'], 403);
+        return auth()->user();
+        return new UserResource($user, true, 'Show User Data Successfully');
     }
 
-
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, $id)
+    public function update(Request $request, User $user)
     {
         $validated = $request->validate([
-            'username' => 'max:20|unique:users,username,' . $id,
+            'username' => 'max:20|unique:users,username,' . $user->id,
             'firstname' => 'max:255',
             'lastname' => 'max:255',
             'birthdate' => 'date',
@@ -63,70 +38,72 @@ class UserController extends Controller
             'city' => 'max:255',
             'biography' => 'max:65535',
             'gender' => 'in:male,female',
-            'file' => 'image',
+            'avatar' => 'image',
 
             // social media link
             'type' => 'in:youtube,instagram',
             'link' => 'url',
         ]);
 
-        return response()->json($request->file);
-        $user = User::findOrFail($id);
-
-        // Simpan perubahan pada tabel users
+        // Save update to the users table
         $userToUpdate = $request->only(['username']);
         if (!empty($userToUpdate)) {
             $user->update($request->only(['username']));
         }
 
-        // $newName = NULL;
-        // if($request->file){
-        //     $randomName = Str::random(30);
-        //     $extension = $request->file->getClientOriginalExtension();
-        //     $newName = $randomName . '.' . $extension;
+        $newName = NULL;
+        if ($request->hasFile('avatar')) {
 
-        //     Storage::putFileAs('images/user/avatar', $request->file, $newName);
-        // }
+            if (!empty($user->detailUser->avatar_url)) {
+                $oldAvatar = $user->detailUser->avatar_url;
+                $oldAvatarPath = 'images/user/avatar/' . $oldAvatar;
+                Storage::delete($oldAvatarPath);
+            }
 
-        $dataToUpdate = $request->only(['firstname', 'lastname', 'birthdate', 'country', 'city', 'biography', 'gender']);
+            $randomName = Str::random(30);
+            $extension = $request->file('avatar')->getClientOriginalExtension();
+            $newName = $randomName . '.' . $extension;
 
-        if (!empty($dataToUpdate)) {
-            $user->detailUser()->update($dataToUpdate);
-            return new UserResource($user->loadMissing(['detailUser']), true, 'User updated successfully!');
+            Storage::putFileAs('images/user/avatar', $request->file('avatar'), $newName);
+
+            DetailUser::where('user_id', $user->id)->update(['avatar_url' => $newName]);
         }
 
+        $detailUserToUpdate = $request->only(['firstname', 'lastname', 'birthdate', 'country', 'city', 'biography', 'gender']);
+
+        // Save update to the detail_users table
+        if (!empty($detailUserToUpdate)) {
+            $user->detailUser()->update($detailUserToUpdate);
+        }
+
+        // Checks if a type and link are provided in the request.
         if ($request->type && $request->link) {
+            // Retrieves user details and decodes social media links from JSON.
             $detailUser = $user->detailUser;
             $socialMediaLinks = json_decode($detailUser->social_media_links, true);
-            
-            // Pastikan socialMediaLinks adalah array
-            if (!is_array($socialMediaLinks)) {
-                $socialMediaLinks = [];
-            }
-            
+
+            // Updates the social media link for the provided type.
             $socialMediaLinks[$validated['type']] = $validated['link'];
 
-            // Simpan kembali sebagai JSON ke basis data
-            $result = $detailUser->social_media_links = json_encode($socialMediaLinks);
-            $detailUser->save();            
+            // Encodes the updated social media links array into JSON format and saves it to the 'social_media_links' field of $detailUser.
+            $detailUser->social_media_links = json_encode($socialMediaLinks);
+            $detailUser->save(); // Saves the updated social media links for the user.
+
         }
 
-        // cek apakah ada data user yang di update atau tidak
-        if (!empty($userToUpdate) || !empty($dataToUpdate)) {
-            return new UserResource($user->loadMissing(['detailUser']), true, 'User Upadated Data Succesfully');
+        // Check if there is any updated user data or not
+        if (!empty($userToUpdate) || !empty($detailUserToUpdate) || !empty($request->type && $request->link) || $request->hasFile('avatar')) {
+            $user = User::where('username', $user->username)->first();
+            return new UserResource($user, true, 'User Upadated Data Succesfully');
         }
 
-        return new UserResource($user->loadMissing(['detailUser']), true, 'No User Upadated Data');
+        return new UserResource($user, true, 'No User Upadated Data');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy($id)
+    public function destroy(User $user)
     {
-        $user = User::findOrFail($id);
         $user->delete();
-        
-        return new UserResource($user->loadMissing(['detailUser']), true, 'User destroy akun successfully');
+
+        return new UserResource($user, true, 'User destroy akun successfully');
     }
 }
