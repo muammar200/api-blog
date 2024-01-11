@@ -10,18 +10,10 @@ use Symfony\Component\HttpFoundation\Response;
 
 class UserOwner
 {
-    /**
-     * Handle an incoming request.
-     *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
-     */
     public function handle(Request $request, Closure $next): Response
     {
-        $currentUser = Auth::user();
-        $user = User::find($request->id);
-
-        if(!$user OR ($currentUser->id !== $user->id)){
-            return response()->json(['message' => 'Data not found'], 404);
+        if(auth()->user()->username !== $request->route('user')->username){
+            return response()->json(['error' => 'Data not found'], 404);
         }
         return $next($request);
     }
