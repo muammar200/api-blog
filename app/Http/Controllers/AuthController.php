@@ -3,9 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
-use Illuminate\Http\Request;
-use App\Http\Resources\UserResource;
 use App\Models\DetailUser;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use App\Http\Resources\UserResource;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
@@ -21,20 +22,21 @@ class AuthController extends Controller
             'password' => 'required|min:8|max:255'
         ]);
 
+        DB::transaction(function () use ($request, &$user) {
+            // store to table users
+            $user = User::create([
+                'username' => $request->username,
+                'email' => $request->email,
+                'password' => $request->password
+            ]);
 
-        // store to table users
-        $user = User::create([
-            'username' => $request->username,
-            'email' => $request->email,
-            'password' => $request->password
-        ]);
-
-        // store to table detail_users
-        $detailUser = DetailUser::create([
-            'user_id' => $user->id,
-            'firstname' => $request->firstname,
-            'lastname' => $request->lastname
-        ]);
+            // store to table detail_users
+            $detailUser = DetailUser::create([
+                'user_id' => 123131,
+                'firstname' => NULL,
+                'lastname' => $request->lastname
+            ]);
+        });
 
         return new UserResource($user->loadMissing(['detailUser']), true, 'User registered successfully!');
     }
