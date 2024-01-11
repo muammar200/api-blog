@@ -10,16 +10,16 @@ class DetailUser extends Model
 {
     use HasFactory;
 
-    // protected $table = 'detail_users';
+    protected $table = 'detail_users';
     protected $fillable = [
         'user_id',
         'firstname',
         'lastname'
     ];
 
-    // public function detailUser(): HasOne
-    // {
-    //     return $this->hasOne(User::class);
-    // }
+    public function user(): HasOne
+    {
+        return $this->hasOne(User::class);
+    }
 }
 
