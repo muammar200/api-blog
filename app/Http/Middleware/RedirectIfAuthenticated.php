@@ -16,8 +16,7 @@ class RedirectIfAuthenticated
 
         foreach ($guards as $guard) {
             if (Auth::guard($guard)->check()) {
-                // return response()->json(['message' => 'User is already authenticated.'], 403);   
-                return redirect('/');
+                return redirect(RouteServiceProvider::HOME);
             }
         }
 
