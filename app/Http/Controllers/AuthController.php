@@ -7,6 +7,7 @@ use App\Models\DetailUser;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Http\Resources\UserResource;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
@@ -19,10 +20,10 @@ class AuthController extends Controller
             'lastname' => 'max:100',
             'username' => 'required|unique:users|max:20',
             'email' => 'required|email:rfc,dns|unique:users',
-            'password' => 'required|min:8|max:255'
+            'password' => 'required|min:8|max:255|confirmed'
         ]);
 
-        DB::transaction(function () use ($request, &$user) {
+        $userRegister = DB::transaction(function () use ($request, &$user, &$token) {
             // store to table users
             $user = User::create([
                 'username' => $request->username,
@@ -32,49 +33,148 @@ class AuthController extends Controller
 
             // store to table detail_users
             $detailUser = DetailUser::create([
-                'user_id' => 123131,
-                'firstname' => NULL,
+                'user_id' => $user->id,
+                'firstname' => $request->firstname,
                 'lastname' => $request->lastname
             ]);
+
+            // SANCTUM
+            // $token = $user->createToken('token_user')->plainTextToken;
+
+            // JWT
+            $token = Auth::login($user);
+            return true;
         });
 
-        return new UserResource($user->loadMissing(['detailUser']), true, 'User registered successfully!');
+        try {
+            $user->sendEmailVerificationNotification();
+        } catch (\Exception $e) {
+        
+        }
+        return new UserResource($user, $token, true, 'User registered successfully!. Please Check Your Email for Verification');
     }
 
     public function login(Request $request)
     {
         $validated = $request->validate([
-            'email' => 'required|email',
+            'email' => 'required|email:rfc,dns',
             'password' => 'required',
         ]);
 
-        $user = User::where('email', $request->email)->first();
+        // SANCTUM
+        // $user = User::where('email', $request->email)->first();
+        // return $user->createToken('token_user')->plainTextToken;
 
-        // check email and password
-        if (!$user ||  !Hash::check($request->password, $user->password)) {
-            throw ValidationException::withMessages([
-                'email' => ['The provided credentials are incorrect.'],
-            ]);
+        // JWT
+        $loginValue = $request->only('email', 'password');
+
+        if (Auth::attempt($loginValue)) {
+            $token = Auth::attempt($loginValue);
+            $user = Auth::user();
+            return new UserResource($user, $token, true, 'User login successfully!');
+        } else {
+            return response()->json([
+                'error' => 'Unauthorized',
+                'message' => 'Email or password is incorrect'
+            ], 401);
         }
-
-        // check email verified or not verified
-        // if (! $user->email_verified_at) {
-        //     throw ValidationException::withMessages([
-        //         'email' => ['Email is not verified.'],
-        //     ]);
-        // }
-
-        return $user->createToken('token_user')->plainTextToken;
-        // return response()->json(['token' => $user->createToken('token_user')->plainTextToken]);
     }
 
     public function logout(Request $request)
     {
-        $request->user()->tokens()->delete();
+        // SANCTUM
+        // $request->user()->tokens()->delete();
+        // return response()->json([
+        //     'success' => true,
+        //     'message' => 'Logout successful!'
+        // ]);
+
+        // JWT
+        $user = Auth::user();
+        Auth::logout();
+        return response()->json([
+            'status' => true,
+            'message' => 'Successfully Logout',
+            'data' => $user
+        ], 200);
+    }
+
+    public function refresh()
+    {
+
+        $token = Auth::refresh();
+        $user =  Auth::user();
 
         return response()->json([
-            'success' => true,
-            'message' => 'Logout successful!'
+            'status' => true,
+            'message' => "Refresh Token Successfully",
+            'user' => $user,
+            'Authorization' => [
+                'token' => $token,
+                'type'  => 'Bearer'
+            ]
+        ], 200);
+    }
+
+    public function verify($id, Request $request)
+    {
+        if (!$request->hasValidSignature()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'verifikasi email gagal'
+            ], 400);
+        }
+
+        $user = User::find($id);
+
+        if (!$user->hasVerifiedEmail()) {
+            $user->markEmailAsVerified();
+        }
+
+        // return redirect()->to('/api/email-verified');
+        return response()->json([
+            'status' => true,
+            'message' => 'Email verification successfull'
+        ]);
+        // return redirect()->action([AuthController::class, 'emailVerified']);
+
+        // cache(['email-verifie' => true], now()->addMinutes(10));
+
+        // return redirect()->action([AuthController::class, 'emailVerified'])->with('status', true);
+    }
+
+    public function emailVerified(Request $request)
+    {
+        $status = session()->get('status', true);
+        return $status;
+        if($status !== true){
+            return response()->json([
+            'status' => false,
+            'message' => 'Data not found'
+            ]);
+        }
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Email verification successfull.'
+        ]);
+    }
+    
+
+    public function resend()
+    {
+
+        if (Auth::user()->hasVerifiedEmail()) {
+            return response()->json([
+                'status' => true,
+                'message' => 'Your email has been verified'
+            ]);
+        }
+
+        Auth::user()->sendEmailVerificationNotification();
+        return response()->json([
+            'status' => true,
+            'message' => 'Email verification link has been sent to your email.'
         ]);
     }
 }
