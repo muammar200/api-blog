@@ -56,9 +56,6 @@ Route::middleware(['auth:api', 'user-owner'])->group(function () {
 Route::middleware(['auth:api', 'admin'])->group(function () {
     Route::prefix('/admin/categories')->group(function () {
         Route::get('/', [CategoryPostController::class, 'index']);
-        Route::get('/deleted', [CategoryPostController::class, 'showAllDeleted']);
-        Route::get('/deleted/{id}', [CategoryPostController::class, 'showSingleDeleted']);
-        Route::post('/{id}/restore', [CategoryPostController::class, 'restore']);
         Route::get('/{id}', [CategoryPostController::class, 'show']);
         Route::post('/', [CategoryPostController::class, 'store']);
         Route::patch('/{id}', [CategoryPostController::class, 'update']);
@@ -68,13 +65,13 @@ Route::middleware(['auth:api', 'admin'])->group(function () {
 
 // User - Dashboard Routes
 // Route::middleware(['auth:sanctum'])->group(function () {
-Route::middleware(['auth:api', 'verified', 'user-owner'])->group(function () {
+Route::middleware(['auth:api', 'verified'])->group(function () {
     Route::prefix('{user:username}/dashboard')->group(function () {
         Route::get('/', [DashboardPostController::class, 'index']);
         Route::get('/posts/{post:slug}', [DashboardPostController::class, 'show']);
         Route::post('/posts', [DashboardPostController::class, 'store']);
-        // Route::put('/posts/{post:slug}', [DashboardPostController::class, 'update']);
-        Route::post('/posts/{post:slug}', [DashboardPostController::class, 'update']);
+        Route::put('/posts/{post:slug}', [DashboardPostController::class, 'update']);
+        // Route::post('/posts/{post:slug}', [DashboardPostController::class, 'update']);
         Route::delete('/posts/{post:slug}', [DashboardPostController::class, 'destroy']);
         Route::get('/deleted/posts', [DashboardPostController::class, 'showAllDeleted']);
         Route::get('/posts/deleted/{post:slug}', [DashboardPostController::class, 'showSingleDeleted']);
@@ -82,21 +79,26 @@ Route::middleware(['auth:api', 'verified', 'user-owner'])->group(function () {
     });
 });
 
-// User - Interaction Routes
+// User - Like & Comment
 Route::middleware(['auth:api', 'verified'])->group(function () {
+    // Like Post Routes
+    Route::post('/posts/{post:slug}/like', [LikeController::class, 'like']);
+    
     // Comment Routes
     Route::post('/comment', [CommentController::class, 'store']);
     Route::put('/comment/{id}', [CommentController::class, 'update'])->middleware(['comment-owner']);
     Route::delete('/comment/{id}', [CommentController::class, 'destroy'])->middleware(['comment-owner']);
-
-    // Like Post Routes
-    Route::post('/posts/{post:slug}/like', [LikeController::class, 'like']);
 });
 
 // Public Access Routes 
+// Public Categories
+Route::get('/public/categories', [CategoryPostController::class, 'index']);
+
 // Public Posts
-Route::get('/posts', [PostController::class, 'index']);
-Route::get('posts/{post:slug}', [PostController::class, 'show']);
+Route::get('/public/posts', [PostController::class, 'index']);
+Route::get('/public/posts/{post:slug}', [PostController::class, 'show']);
 
 // Public Users
-Route::get('/{user:username}', [PublicUserController::class, 'show']);
+Route::get('public/users/search', [PublicUserController::class, 'search']);
+Route::get('public/users/search/{user:username}', [PublicUserController::class, 'show']);
+

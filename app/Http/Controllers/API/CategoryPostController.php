@@ -5,19 +5,40 @@ namespace App\Http\Controllers\API;
 use App\Rules\ValidateSlug;
 use App\Models\CategoryPost;
 use Illuminate\Http\Request;
+use App\Http\Resources\TesResource;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\CategoryPostResource;
-use App\Http\Resources\CategoryPostResourceShowAll;
+use App\Http\Resources\CategoryPostResourceAll;
+use App\Http\Resources\Collection\CategoryResource;
 
 class CategoryPostController extends Controller
 {
     public function index()
     {
-        $categories = CategoryPost::all();
+        $perPage = request()->get('perpage', 10);
+        $page = request()->get('page', 1);
+
+        $categories = CategoryPost::query();
+        if(request()->has('search')){
+            $keyword = request('search');
+            $categories->where(function ($query) use ($keyword){
+                $query->where('name', 'like', "%{$keyword}%")
+                ->orWhere('slug', 'like', "%{$keyword}%");
+            });
+        }
+
+        $categories = $categories->Paginate($perPage, ['*'], 'page', $page);
+        
         return response()->json([
-            'success' => true,
-            'message' => 'Show All Category Posts Success!',
-            'data' => CategoryPostResourceShowAll::collection($categories)
+            'status' => true,
+            'message' => 'List Categories',
+            'meta' => [
+                'page' => $categories->currentPage(),
+                'perpage' => $categories->perPage(),
+                'total_page' => $categories->lastPage(),
+                'total_item' => $categories->total()
+            ],
+            'data' =>  CategoryPostResource::collection($categories),
         ]);
     }
 
@@ -30,13 +51,22 @@ class CategoryPostController extends Controller
 
         $category = CategoryPost::create($request->all());
 
-        return new CategoryPostResource($category, true, 'store category post success');
+        return response()->json([
+            'status' => true,
+            'message' => "Category has been created",
+            'data' => new CategoryPostResource($category)
+        ]);
     }
 
     public function show($id)
     {
         $category = CategoryPost::findOrFail($id);
-        return new CategoryPostResource($category, true, 'store category post success');
+        
+        return response()->json([
+            'status' => true,
+            'message' => "Show Category By Id",
+            'data' => new CategoryPostResource($category)
+        ]);
     }
 
     public function update(Request $request, $id)
@@ -49,41 +79,23 @@ class CategoryPostController extends Controller
         $category = CategoryPost::findOrFail($id);
         $category->update($request->all());
 
-        return new CategoryPostResource($category, true, 'update category post success');
+        return response()->json([
+            'status' => true,
+            'message' => "Category has been updated",
+            'data' => new CategoryPostResource($category)
+        ]);
     }
 
     public function destroy($id)
     {
         $category = CategoryPost::findOrFail($id);
         $category->delete();
-        
-        return new CategoryPostResource($category, true, 'delete category post success');
-    }
-
-    public function showAllDeleted()
-    {
-        
-        $deletedCategory = CategoryPost::onlyTrashed()->get();
 
         return response()->json([
-            'success' => true,
-            'message' => 'Show All Deleted Category Posts Success!',
-            'data' => CategoryPostResourceShowAll::collection($deletedCategory)
+            'status' => true,
+            'message' => "Category has been deleted",
+            'data' => new CategoryPostResource($category)
         ]);
     }
 
-    public function showSingleDeleted($id)
-    {
-        $categoryDeleted = CategoryPost::onlyTrashed()->findOrFail($id);
-        return new CategoryPostResource($categoryDeleted, true, 'show deleted category post success');
-    }
-
-    public function restore($id)
-    {
-        $restoreCategory = CategoryPost::onlyTrashed()->findOrFail($id);
-        
-        $restoreCategory->restore(); 
-
-        return new CategoryPostResource($restoreCategory, true, 'restore category post success');
-    }
 }

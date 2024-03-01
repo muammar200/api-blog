@@ -13,17 +13,17 @@ class PostResource extends JsonResource
         return [
             'post_id' => $this->id,
             'author' => [
-                'id' => $this->author_id,
-                'username' => $this->author->username,
-                'name' => $this->author->DetailUser->firstname . $this->author->DetailUser->lastname,
+                'id' => $this->author->id,
+                'email' => $this->author->email,
+                'fullname' => $this->author->DetailUser->firstname . ' ' . $this->author->DetailUser->lastname,
             ],
             'category' => [
                 'id' => $this->category->id,
                 'name' => $this->category->name,
             ],
             // 'category' => [
-            //     'id' => $this->category ? $this->category->id : null,
-            //     'name' => $this->category ? $this->category->name : null,
+            //     'id' => $this->category->id ?? null,
+            //     'name' => $this->category->name ?? null,
             // ],
             'title' => $this->title,
             'slug' => $this->slug,
@@ -41,7 +41,6 @@ class PostResource extends JsonResource
                         'created_at'=> Carbon::parse($comment->created_at)->format('Y/m/d H:i:s'),
                         'updated_at'=> Carbon::parse($comment->updated_at)->format('Y/m/d H:i:s'),
                         'commentator' => [
-                            'id' => $comment->commentator->id,
                             'username' => $comment->commentator->username,
                             'fullname' => $comment->commentator->detailUser->firstname . ' ' . $comment->commentator->detailUser->lastname
                         ],

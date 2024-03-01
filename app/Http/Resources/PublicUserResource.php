@@ -21,8 +21,7 @@ class PublicUserResource extends JsonResource
                     'avatar_url' => $this->detailUser->avatar_url,
                     'biography' => $this->detailUser->biography,
                     'social_media_links' => $this->detailUser->social_media_links,
-                    'date_join' =>
-                    Carbon::parse($this->created_at)->format('Y/m/d'),
+                    'date_join' => Carbon::parse($this->created_at)->format('Y/m/d'),
                 ],  
         ];
     }

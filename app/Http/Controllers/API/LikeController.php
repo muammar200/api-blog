@@ -2,18 +2,20 @@
 
 namespace App\Http\Controllers\API;
 
-use App\Http\Controllers\Controller;
 use App\Models\Like;
 use App\Models\Post;
 use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
 use App\Http\Resources\LikeResource;
+use Illuminate\Support\Facades\Auth;
 use App\Http\Resources\CommentResource;
+
 
 class LikeController extends Controller
 {
     public function like(Post $post)
     {
-        $user = auth()->user();
+        $user = Auth::user();
         
         if($user->likes->where('post_id', $post->id)->isNotEmpty()){
             $user->likes()->where('post_id', $post->id)->delete();

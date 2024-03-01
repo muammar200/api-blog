@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use App\Models\Like;
 use App\Models\User;
 use App\Models\Comment;
@@ -19,6 +20,8 @@ class Post extends Model
 
     protected $fillable = ['title', 'category_id', 'slug', 'content', 'author_id', 'published_at'];
     protected $with = ['category', 'author', 'postImages', 'comments', 'likes'];
+    protected $dates = ['published_at'];
+
 
     public function author(): BelongsTo
     {

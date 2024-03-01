@@ -20,7 +20,7 @@ class CommentOwner
         $comment = Comment::findOrFail($request->id);
         
         if(auth()->user()->id !== $comment->user_id){
-            return response()->json(['message' => 'data not found'], 404);
+            return response()->json(['message' => 'Unauthorized access to comment.'], 403);
         }
         return $next($request);
     }

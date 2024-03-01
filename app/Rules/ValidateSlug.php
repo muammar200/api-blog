@@ -3,6 +3,7 @@
 namespace App\Rules;
 
 use Closure;
+use App\Models\Post;
 use Illuminate\Support\Str;
 use Illuminate\Contracts\Validation\ValidationRule;
 
@@ -14,9 +15,9 @@ class ValidateSlug implements ValidationRule
         $expectedSlug = Str::slug($name);
 
         if ($value !== $expectedSlug) {
-            if(request()->input('name')){
+            if (request()->input('name')) {
                 $fail("The $attribute must match the name.");
-            } elseif(request()->input('title')){
+            } elseif (request()->input('title')) {
                 $fail("The $attribute must match the title.");
             }
         }

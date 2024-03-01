@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class DetailUser extends Model
 {
+    public $timestamps = false;
+    
     use HasFactory;
 
     protected $table = 'detail_users';

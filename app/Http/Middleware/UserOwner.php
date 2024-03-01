@@ -13,7 +13,7 @@ class UserOwner
     public function handle(Request $request, Closure $next): Response
     {
         if(auth()->user()->username !== $request->route('user')->username){
-            return response()->json(['error' => 'Data not found'], 404);
+            return response()->json(['error' => 'Unauthorized access'], 403);
         }
         return $next($request);
     }

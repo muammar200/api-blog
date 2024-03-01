@@ -11,6 +11,7 @@ use Illuminate\Auth\Events\PasswordReset;
 
 class PasswordController extends Controller
 {
+    // Method Change Password
     public function changePassword(Request $request)
     {
 
@@ -38,6 +39,7 @@ class PasswordController extends Controller
         ]);
     }
 
+    // Method Forgot Password. send email - reset password
     public function sendEmailForgotPassword(Request $request)
     {
         $request->validate(['email' => 'required|email']);
@@ -51,14 +53,16 @@ class PasswordController extends Controller
             : response()->json(['error' => __($status)], 422);
     }
 
-    public function getTokenResetPassword(Request $request, string $token){
+    public function getTokenResetPassword(Request $request, string $token)
+    {
         return response()->json([
             'status' => true,
             'token' => $token,
             'email' => $request->email]);
     }
 
-    public function resetPassword(Request $request){
+    public function resetPassword(Request $request)
+    {
         $request->validate([
             'token' => 'required',
             'email' => 'required|email',
@@ -81,4 +85,6 @@ class PasswordController extends Controller
         ? response()->json(['status' => __($status)])
         : response()->json(['error' => __($status)], 422);
     }
+
+
 }

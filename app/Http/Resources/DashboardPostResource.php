@@ -12,19 +12,15 @@ class DashboardPostResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'category' => $this->category->name,
             'title' => $this->title,
             'slug' => $this->slug,
+            'category' => $this->category->name,
             'content' => $this->content,
-            'created_at' => Carbon::parse($this->creted_at)->format('Y/m/d H:i:s'),
+            'created_at' => Carbon::parse($this->created_at)->format('Y/m/d H:i:s'),
             'updated_at' => Carbon::parse($this->updated_at)->format('Y/m/d H:i:s'),
             'published_at' => $this->published_at ? Carbon::parse($this->published_at)->format('Y/m/d H:i:s') : null,
             'deleted_at' => $this->deleted_at ? Carbon::parse($this->deleted_at)->format('Y/m/d H:i:s') : null,
-            // 'post_image' => $this->postImages
-            // 'post_image' => $this->postImages->pluck('image')->toArray(), // Mengambil hanya nama file gambar dari postImages
-            // 'post_image' => $this->postImages->pluck('image')->toJson(),
-            'post_image' => $this->postImages->isEmpty() ? null : $this->postImages[0]['image'],
-
+            'post_image' => $this->postImages->pluck('image')->toArray(), // Mengambil hanya nama file gambar dari postImages
         ];
     }
 }

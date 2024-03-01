@@ -2,45 +2,45 @@
 
 namespace App\Http\Controllers\API;
 
-use App\Http\Controllers\Controller;
 use App\Models\Post;
 use App\Models\User;
 use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
 use App\Http\Resources\PostResource;
 use App\Http\Resources\PublicUserResource;
+use App\Http\Resources\SearchUserResource;
 
 class PublicUserController extends Controller
 {
-    public function show(User $user, Request $request)
+    public function show(User $user)
     {
-        $perPage = 10; // Jumlah postingan per halaman
+        return new PublicUserResource($user);
+    }
 
-        $userPostsQuery = Post::where('author_id', $user->id)
-            ->whereNotNull('published_at')->orderBy('created_at', 'desc');
+    public function search(Request $request)
+    {
+        if ($request->input('search')) {
+            $perPage = 10;
+            $page = 1;
+            if ($request->has('loadMore')) {
+                $number = $request->input('loadMore');
+                $page = $number;
+            }
 
-        if ($request->has('loadMore')) {
-            // Jika ada permintaan untuk memuat lebih banyak data
-            $userPosts = $userPostsQuery->paginate($perPage, ['*'], 'page', $request->input('loadMore'));
-        } else {
-            // Jika permintaan pertama kali tanpa nomor halaman
-            $userPosts = $userPostsQuery->paginate($perPage);
+            $search = $request->input('search');
+            $users = User::where('username', 'LIKE', '%' . $search . '%')->orWhereHas('detailUser', function ($query) use ($search) {
+                $query->where('firstname', 'like', "%{$search}%")->orWhere('lastname', 'like', "%{$search}%");
+            })->paginate($perPage, ['*'], 'page', $page);;
+
+            return response()->json([
+                'meta' => [
+                    'page' => $users->currentPage(),
+                    'perpage' => $users->perPage(),
+                    'total_page' => $users->lastPage(),
+                    'total_item' => $users->total(),
+                ],
+                'data' => SearchUserResource::collection($users),
+            ]);
         }
-
-        // $userPosts = Post::where('author_id', $user->id)->orderBy('created_at', 'desc')->paginate($perPage);
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Show Public User Success',
-            'meta' => [
-                'page' => $userPosts->currentPage(),
-                'perpage' => $userPosts->perPage(),
-                'total_page' => $userPosts->lastPage(),
-                'total_item' => $userPosts->total(),
-            ],
-            'data' => [
-                'user_data' => new PublicUserResource($user),
-                'user_posts' => PostResource::collection($userPosts),
-            ]
-        ]);
     }
 }

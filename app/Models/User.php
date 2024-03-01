@@ -64,10 +64,12 @@ class User extends Authenticatable implements JWTSubject, MustVerifyEmail
     {
         return $this->hasMany(Post::class, 'author_id', 'id');
     }
+    
     public function comments(): HasMany
     {
         return $this->hasMany(Comment::class, 'user_id', 'id');
     }
+
     public function likes(): HasMany
     {
         return $this->hasMany(Like::class, 'user_id', 'id');

@@ -18,8 +18,48 @@ class PostController extends Controller
         $perPage = request()->get('perpage', 10); // Mengambil jumlah item per halaman dari request, defaultnya 10
         $page = request()->get('page', 1); // Mengambil nomor halaman dari request, defaultnya halaman 1
 
-        $posts = Post::whereNotNull('published_at')->has('author')->orderBy('created_at', 'desc')->paginate($perPage, ['*'], 'page', $page);
-        // return $posts;
+        // $posts = Post::whereNotNull('published_at')->has('author')->has('category')->latest();
+        // if (request()->has('search')) {
+        //     $keyword = request('search');
+        //     $posts = Post::whereNotNull('published_at')->has('author')->has('category')->where(function ($query) use ($keyword) {
+        //         $query->where('title', 'like', "%{$keyword}%")
+        //             ->orWhere('slug', 'like', "%{$keyword}%")
+        //             ->orWhere('content', 'like', "%{$keyword}%")
+        //             ->orWhereHas('category', function ($query) use ($keyword) {
+        //                 $query->where('name', 'like', "%{$keyword}%");
+        //             })->orWhereHas('author', function ($query) use ($keyword) {
+        //                 $query->where('username', 'like', "%{$keyword}%")
+        //                     ->orWhereHas('detailUser', function ($query) use ($keyword) {
+        //                         $query->whereRaw("CONCAT(firstname, ' ', lastname) LIKE ?", ["%{$keyword}%"]);
+        //                     });
+        //             });
+        //     })->latest()->Paginate($perPage, ['*'], 'page', $page);
+        // } else {
+        //     $posts = Post::latest()->Paginate($perPage, ['*'], 'page', $page);;
+        // }
+
+        // $posts = $posts->Paginate($perPage, ['*'], 'page', $page);
+
+        $posts = Post::whereNotNull('published_at')->has('author')->has('category')->latest();
+        if (request()->has('search')) {
+            $keyword = request('search');
+            $posts->where(function ($query) use ($keyword) {
+                $query->where('title', 'like', "%{$keyword}%")
+                    ->orWhere('slug', 'like', "%{$keyword}%")
+                    ->orWhere('content', 'like', "%{$keyword}%")
+                    ->orWhereHas('category', function ($query) use ($keyword) {
+                        $query->where('name', 'like', "%{$keyword}%");
+                    })->orWhereHas('author', function ($query) use ($keyword) {
+                        $query->where('username', 'like', "%{$keyword}%")
+                            ->orWhereHas('detailUser', function ($query) use ($keyword) {
+                                $query->whereRaw("CONCAT(firstname, ' ', lastname) LIKE ?", ["%{$keyword}%"]);
+                            });
+                    });
+            });
+        }
+
+        $posts = $posts->Paginate($perPage, ['*'], 'page', $page);
+
         return response()->json([
             'status' => 'success',
             'message' => 'Show Posts Success!',
@@ -44,7 +84,7 @@ class PostController extends Controller
         } else {
             return response()->json([
                 'error' => 'data not found',
-            ]);
+            ], 404);
         }
     }
 }

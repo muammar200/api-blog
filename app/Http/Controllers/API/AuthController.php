@@ -5,11 +5,13 @@ namespace App\Http\Controllers\API;
 use App\Models\User;
 use App\Models\DetailUser;
 use Illuminate\Http\Request;
-use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\DB;
+use App\Http\Controllers\Controller;
+use App\Http\Resources\AuthResource;
 use App\Http\Resources\UserResource;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use App\Http\Resources\MessageResource;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -24,13 +26,9 @@ class AuthController extends Controller
             'password' => 'required|min:8|max:255|confirmed'
         ]);
 
-        $userRegister = DB::transaction(function () use ($request, &$user, &$token) {
+        DB::transaction(function () use ($request, &$user, &$token) {
             // store to table users
-            $user = User::create([
-                'username' => $request->username,
-                'email' => $request->email,
-                'password' => $request->password
-            ]);
+            $user = User::create($request->all());
 
             // store to table detail_users
             $detailUser = DetailUser::create([
@@ -44,43 +42,43 @@ class AuthController extends Controller
 
             // JWT
             $token = Auth::login($user);
-            return true;
         });
+
+        // return $tess;
 
         try {
             $user->sendEmailVerificationNotification();
         } catch (\Exception $e) {
         
         }
-        return new UserResource($user, $token, true, 'User registered successfully!. Please Check Your Email for Verification');
+        return new AuthResource (true, 'User registered successfully!. Check Email for Verification', $user, $token,);
     }
 
     public function login(Request $request)
     {
-        $validated = $request->validate([
+        $credentials = $request->validate([
             'email' => 'required|email:rfc,dns',
-            'email' => 'required|email',
             'password' => 'required',
         ]);
 
         // SANCTUM
         // $user = User::where('email', $request->email)->first();
+        // if (! $user || ! Hash::check($request->password, $user->password)) {
+        //     throw ValidationException::withMessages([
+        //         'email' => ['The provided credentials are incorrect.'],
+        //     ]);
+        // }
         // return $user->createToken('token_user')->plainTextToken;
 
         // JWT
-        $loginValue = $request->only('email', 'password');
-
-        if (Auth::attempt($loginValue)) {
-        
-            $token = Auth::attempt($loginValue);
-            // $token = Auth::attempt();
+        if (Auth::attempt($credentials)) {
+            $token = Auth::attempt($credentials);
             $user = Auth::user();
-            return new UserResource($user, $token, true, 'User login successfully!');
-        } else {
-            return response()->json([
-                'error' => 'Unauthorized',
-                'message' => 'Email or password is incorrect'
-            ], 401);
+
+            return new AuthResource (true, 'User login successfully!', $user, $token,);
+        } 
+        else {
+            return new MessageResource (false, 'Email or password is incorrect', 401);
         }
     }
 
@@ -96,27 +94,14 @@ class AuthController extends Controller
         // JWT
         $user = Auth::user();
         Auth::logout();
-        return response()->json([
-            'status' => true,
-            'message' => 'Successfully Logout',
-            'data' => $user
-        ], 200);
+        return new AuthResource (true, 'User logout successfully!', $user, null);
     }
 
     public function refreshToken()
     {
-
         $token = Auth::refresh();
         $user =  Auth::user();
 
-        return response()->json([
-            'status' => true,
-            'message' => "Refresh Token Successfully",
-            'user' => $user,
-            'Authorization' => [
-                'token' => $token,
-                'type'  => 'Bearer'
-            ]
-        ], 200);
+        return new AuthResource (true, 'Refresh Token successfully!', $user, $token);
     }
 }
